@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd" >
+<log4j:configuration>
+	<appender name="stdout" class="org.apache.log4j.ConsoleAppender">
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{ABSOLUTE} %5p [%-50c{4}] - %m%n" />
+
+		</layout>
+	</appender>
+
+    <logger name="org.hibernate" additivity="false">
+        <level value="info"></level>
+        <appender-ref ref="stdout" />
+    </logger>
+    
+    <!-- log sql stmts -->
+    <logger name="org.hibernate.SQL" additivity="false">
+        <level value="debug"></level>
+        <appender-ref ref="stdout" />
+    </logger>
+    <!-- log sql params -->
+    <logger name="org.hibernate.type" additivity="false">
+        <level value="info"></level>
+        <appender-ref ref="stdout" />
+    </logger>
+    <!-- log DDLs -->
+    <logger name="org.hibernate.tool.hbm2ddl" additivity="false">
+        <level value="debug"></level>
+        <appender-ref ref="stdout" />
+    </logger>
+
+	<root>
+		<priority value="info" />
+		<appender-ref ref="stdout" />
+	</root>
+</log4j:configuration>
