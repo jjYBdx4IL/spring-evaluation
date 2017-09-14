@@ -503,7 +503,7 @@ public class PersistenceUnitTest {
         bs.setBody(blob);
         assertEquals(dataSize, is.available());
         em.persist(bs);
-        em.flush();
+        em.flush(); // <- flush or commit required before input stream gets closed!
         assertEquals(0, is.available());
     }
 
