@@ -59,6 +59,7 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.ParameterExpression;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.sql.DataSource;
@@ -570,6 +571,39 @@ public class PersistenceUnitTest {
         assertEquals("C", users.get(0).getName());
         assertEquals(1, users.get(1).getPriority());
         assertEquals("A", users.get(1).getName());
+    }
+
+    @Test
+    public void testCriteriaBuilderParam() {
+        log.info("testCriteriaBuilderParam()");
+
+        PrioritizedUser user = new PrioritizedUser();
+        user.setPriority(1);
+        user.setName("A");
+        em.persist(user);
+
+        user = new PrioritizedUser();
+        user.setPriority(2);
+        user.setName("B");
+        em.persist(user);
+
+        user = new PrioritizedUser();
+        user.setPriority(3);
+        user.setName("C");
+        em.persist(user);
+
+        final CriteriaBuilder cb = em.getCriteriaBuilder();
+        final CriteriaQuery<PrioritizedUser> cq = cb.createQuery(PrioritizedUser.class);
+        final Root<PrioritizedUser> fromRoot = cq.from(PrioritizedUser.class);
+        Predicate predicate = cb.equal(
+            fromRoot.get(PrioritizedUser_.name),
+            cb.parameter(PrioritizedUser_.name.getJavaType(), "name"));
+        cq.where(predicate);
+
+        List <PrioritizedUser> users = em.createQuery(cq).setParameter("name", "B").getResultList();
+        assertEquals(1, users.size());
+        assertEquals(2, users.get(0).getPriority());
+        assertEquals("B", users.get(0).getName());
     }
 
     @Test
