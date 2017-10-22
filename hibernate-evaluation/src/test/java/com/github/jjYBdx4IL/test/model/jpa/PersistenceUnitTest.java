@@ -8,6 +8,13 @@
  */
 package com.github.jjYBdx4IL.test.model.jpa;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import com.github.jjYBdx4IL.test.model.jpa.collection.DataSetWithValueList;
 import com.github.jjYBdx4IL.test.model.jpa.collection.SomeValue;
 import com.github.jjYBdx4IL.test.model.jpa.common.PrioritizedUser;
@@ -26,6 +33,7 @@ import com.github.jjYBdx4IL.test.model.jpa.foreignkeyjoin2.UserNoMappedBy;
 import com.github.jjYBdx4IL.test.model.jpa.misc.BlobStream;
 import com.github.jjYBdx4IL.test.model.jpa.misc.Blog;
 import com.github.jjYBdx4IL.test.model.jpa.misc.BlogWithFullTextIndex;
+import com.github.jjYBdx4IL.test.model.jpa.misc.Blog_;
 import com.github.jjYBdx4IL.test.model.jpa.misc.ExtendsBlog;
 import com.github.jjYBdx4IL.test.model.jpa.misc.ExtendsBlogWithoutEntityAnnotation;
 import com.github.jjYBdx4IL.test.model.jpa.misc.RowWithUniqueField;
@@ -35,6 +43,17 @@ import com.github.jjYBdx4IL.test.model.jpa.refcomppk.Message3;
 import com.github.jjYBdx4IL.test.model.jpa.refcomppk.MessageMultiMBox;
 import com.github.jjYBdx4IL.test.model.jpa.uniquecompidx.UniqueCompositeIndexEntity;
 import com.github.jjYBdx4IL.utils.jdbc.ResultSetUtils;
+import org.apache.log4j.Logger;
+import org.hibernate.Session;
+import org.hibernate.search.jpa.FullTextEntityManager;
+import org.hibernate.search.query.dsl.QueryBuilder;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
@@ -57,26 +76,13 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
+import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.ParameterExpression;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.sql.DataSource;
 import javax.transaction.Transactional;
-
-import org.apache.log4j.Logger;
-import org.hibernate.Session;
-import org.hibernate.search.jpa.FullTextEntityManager;
-import org.hibernate.search.query.dsl.QueryBuilder;
-import org.junit.Assert;
-import static org.junit.Assert.*;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.jdbc.datasource.DataSourceUtils;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * http://docs.jboss.org/hibernate/orm/4.1/manual/en-US/html_single/#mapping-declaration
@@ -678,6 +684,28 @@ public class PersistenceUnitTest {
 
         blog = em.find(Blog.class, blogId);
         Assert.assertNull(blog);
+    }
+
+    // check existence using typedquery without retrieving any of the data
+    @Test
+    public void testSelect1ExistsTypedQuery() {
+        log.info("testSelect1TypedQuery()");
+        Blog blog = new Blog();
+        blog.setSubject("testsub123");
+        em.persist(blog);
+
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<Blog> root = cq.from(Blog.class);
+        cq.select(cb.count(root));
+        Predicate predicateKey = cb.equal(
+            root.get(Blog_.subject),
+            cb.parameter(Blog_.subject.getJavaType(), "param"));
+        cq.where(predicateKey);
+        TypedQuery<Long> tq = em.createQuery(cq);
+
+        assertEquals(1, tq.setParameter("param", "testsub123").getSingleResult().longValue());
+        assertEquals(0, tq.setParameter("param", "test4356").getSingleResult().longValue());
     }
 
     /**
